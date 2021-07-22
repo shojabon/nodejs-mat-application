@@ -173,6 +173,12 @@ class MatApplication{
 
     //======== HIDDEN ============
 
+    __registerFunctionInformation(){
+        for(const endpoint of this.eventHandlerEndpoints){
+            this.__executeBaseFunction(new MatEventObject("application.function.register", this.functionInformation).data(), this.publicKey, this.secretKey, endpoint).then((result)=>{console.log(result)});
+        }
+    }
+
     async __executeBaseFunction(payload, publicKey, secretKey, eventBusEndpoint){
         payload["publicKey"] = publicKey;
         return this.__restPostToAddress(eventBusEndpoint + "/base", secretKey, payload);
@@ -278,7 +284,10 @@ class MatApplication{
         return crypto.createHash('sha256').update(Buffer.from(JSON.stringify(payload)).toString("base64") + "." + secret, 'utf8').digest('hex');
     }
 
-    start(){
+    start(pushFunctions=false){
+        if(pushFunctions){
+            this.__registerFunctionInformation();
+        }
         route.listen(this.port);
     }
 
