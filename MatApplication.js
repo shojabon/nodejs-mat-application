@@ -85,11 +85,11 @@ class MatApplication{
         }
     }
 
-    register_endpoint(endpoint){
+    registerEndpoint(endpoint){
         this.eventHandlerEndpoints.push(endpoint);
     }
 
-    async send_event(event){
+    async sendEvent(event){
         if(!(event instanceof MatEventObject)){
             return new MatEventObject("event.invalid", {}, true).data();
         }
@@ -112,7 +112,7 @@ class MatApplication{
                 if("responseId" in responseData["params"]){
                     const responseId = responseData["params"]["responseId"];
                     this.waitingForResponse.push(responseId);
-                    await this.__wait_until(()=>{return responseId in this.responseTable}, this.timeout, 50);
+                    await this.__waitUntil(()=>{return responseId in this.responseTable}, this.timeout, 50);
                     this.waitingForResponse.splice(this.waitingForResponse.indexOf(responseId), 1);
                     if(responseId in this.responseTable){
                         const eventData = this.responseTable[responseId];
@@ -141,8 +141,8 @@ class MatApplication{
                 res.send("");
                 return;
             }
-            if(this.__verify_message(req.body, this.secretKey) === req.headers.v){
-                this.__handle_event(req.body);
+            if(this.__verifyMessage(req.body, this.secretKey) === req.headers.v){
+                this.__handleEvent(req.body);
                 res.send("");
                 return;
             }
@@ -151,7 +151,7 @@ class MatApplication{
         })
     }
 
-    async __wait_until(condition, timeout, period){
+    async __waitUntil(condition, timeout, period){
         const mustend = Math.floor(new Date().getTime() / 1000) + timeout;
         while(Math.floor(new Date().getTime() / 1000) < mustend){
             if(condition()){return true}
@@ -160,7 +160,7 @@ class MatApplication{
         return false;
     }
 
-    __handle_event(event){
+    __handleEvent(event){
         if("responseId" in event && this.waitingForResponse.includes(event["responseId"])){
             this.responseTable[event["responseId"]] = event;
             return;
@@ -168,7 +168,7 @@ class MatApplication{
         for(const eventName of Object.keys(this.listeningEvents)){
             if(eventName === event["name"] ||
                 (eventName.includes("*") && event["name"].startsWith(eventName.replace("*", "")))){
-                this.__execute_event(eventName, event);
+                this.__executeEvent(eventName, event);
             }
         }
     }
@@ -176,7 +176,7 @@ class MatApplication{
     async __restPostToAddress(url, secret, data){
         const dataCopy = Object.assign({}, data);
         try{
-            const result = await axios.post(url, data, {headers: {'Content-Type': 'application/json',"v": this.__verify_message(dataCopy, secret)}});
+            const result = await axios.post(url, data, {headers: {'Content-Type': 'application/json',"v": this.__verifyMessage(dataCopy, secret)}});
             if(result.status !== 200){
                 return null;
             }
@@ -186,7 +186,7 @@ class MatApplication{
         }
     }
 
-    __execute_event(registeredEventName, event){
+    __executeEvent(registeredEventName, event){
         if(!(registeredEventName in this.listeningEvents)){
             return;
         }
@@ -203,33 +203,33 @@ class MatApplication{
                             result.name = "response." + String(event["name"]);
                         }
                         result.responseId = event["responseId"];
-                        this.send_event(result).then();
+                        this.sendEvent(result).then();
                         return;
                     }
                 }
 
                 if(result instanceof Object){
-                    this.send_event(new MatEventObject("response." + String(event["name"]), result, false, undefined, event["responseId"])).then();
+                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, false, undefined, event["responseId"])).then();
                     return;
                 }
 
                 if(result === undefined){
                     let resultObject = new MatEventObject("response.empty", {}, false)
                     resultObject.responseId = event["responseId"];
-                    this.send_event(resultObject).then();
+                    this.sendEvent(resultObject).then();
                     return;
                 }
 
                 let resultObject = new MatEventObject("response." + String(event["name"]), {"result": result}, false)
                 resultObject.responseId = event["responseId"];
-                this.send_event(resultObject).then();
+                this.sendEvent(resultObject).then();
                 return;
             }
 
         }
     }
 
-    __verify_message(payload, secret){
+    __verifyMessage(payload, secret){
         return crypto.createHash('sha256').update(Buffer.from(JSON.stringify(payload)).toString("base64") + "." + secret, 'utf8').digest('hex');
     }
 

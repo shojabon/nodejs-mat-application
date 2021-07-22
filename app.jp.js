@@ -7,11 +7,11 @@ matApp.registerMatFunction(["test.function"], (event)=>{
     console.log("event accepted");
 }, true, true);
 
-matApp.register_endpoint("http://127.0.0.1:80/event");
+matApp.registerEndpoint("http://127.0.0.1:80/event");
 matApp.start();
 
 async function test(){
-    const result = await matApp.send_event(new MatApplication.MatEventObject("test.function", {"test": "a"}, false, true, undefined, undefined));
+    const result = await matApp.sendEvent(new MatApplication.MatEventObject("test.function", {"test": "a"}, false, true, undefined, undefined));
     console.log(result);
 }
 
