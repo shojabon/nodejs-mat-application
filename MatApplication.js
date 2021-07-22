@@ -37,7 +37,7 @@ class MatEventObject{
 
 class MatApplication{
 
-    constructor(applicationName, ip, port, hookAddress, publicKey, secretKey, threadPool, timeout) {
+    constructor(applicationName, ip, port, hookAddress, publicKey, secretKey, timeout) {
         this.applicationName = applicationName;
         this.ip = ip;
         this.port = port;
@@ -288,7 +288,7 @@ class MatApplication{
         if(pushFunctions){
             this.__registerFunctionInformation();
         }
-        route.listen(this.port);
+        route.listen(this.port, this.ip);
     }
 
 }
