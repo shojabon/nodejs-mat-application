@@ -89,6 +89,44 @@ class MatApplication{
         this.eventHandlerEndpoints.push(endpoint);
     }
 
+    //======== BASE FUNCTIONS ====
+    async getNetworkSubscribers(){
+        for(const endpoint of this.eventHandlerEndpoints){
+            const result = await this.__executeBaseFunction(new MatEventObject("application.subscriber.list", {}).data(), this.publicKey, this.secretKey, endpoint);
+            if(result["name"] === "success"){
+                return result["params"];
+            }
+            if(result["exception"] && result["name"] !== "endpoint.error"){
+                return null;
+            }
+        }
+        return null;
+    }
+    //======== SEND FUNCTIONS ====
+
+    async sendEventMultiple(events = []){
+        for(let index = 0; index < events.length; index++){
+            events[index] = this.sendEvent(events[index]);
+        }
+        return await Promise.all(events);
+    }
+
+    async sendEventApplicationSubscribers(event){
+        const applicationNames = Object.keys(await this.getNetworkSubscribers());
+        let events = [];
+        for(const appName of applicationNames){
+            let eventCopy = Object.assign(Object.create(Object.getPrototypeOf(event)), event);
+            eventCopy["target"] = appName;
+            events.push(eventCopy);
+        }
+        const tempResult = await this.sendEventMultiple(events);
+        let output = {};
+        for(let i = 0; i < applicationNames.length; i++){
+            output[applicationNames[i]] = tempResult[i];
+        }
+        return output;
+    }
+
     async sendEvent(event){
         if(!(event instanceof MatEventObject)){
             return new MatEventObject("event.invalid", {}, true).data();
@@ -131,6 +169,13 @@ class MatApplication{
         }
 
         return new MatEventObject("endpoint.failed", {}, true).data();
+    }
+
+    //======== HIDDEN ============
+
+    async __executeBaseFunction(payload, publicKey, secretKey, eventBusEndpoint){
+        payload["publicKey"] = publicKey;
+        return this.__restPostToAddress(eventBusEndpoint + "/base", secretKey, payload);
     }
 
     __registerListener(){
@@ -238,6 +283,7 @@ class MatApplication{
     }
 
 }
+
 module.exports = {
     "MatApplication": MatApplication,
     "MatEventObject": MatEventObject

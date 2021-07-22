@@ -5,14 +5,17 @@ matApp = new MatApplication.MatApplication("test", "0.0.0.0", 2000, "/hook",
 
 matApp.registerMatFunction(["test.function"], (event)=>{
     console.log("event accepted");
+    return event["params"]["test"] + " asdasdasdasdasdasd";
 }, true, true);
 
 matApp.registerEndpoint("http://127.0.0.1:80/event");
 matApp.start();
 
+
+
 async function test(){
-    const result = await matApp.sendEvent(new MatApplication.MatEventObject("test.function", {"test": "a"}, false, true, undefined, undefined));
-    console.log(result);
+    const result = matApp.sendEventApplicationSubscribers(new MatApplication.MatEventObject("test.function", {"test": "a"}, false, true, undefined, undefined));
+    console.log(await result);
 }
 
 test().then();
