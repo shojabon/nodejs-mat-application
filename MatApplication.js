@@ -44,7 +44,6 @@ class MatApplication{
         this.hookAddress = hookAddress;
         this.publicKey = publicKey;
         this.secretKey = secretKey;
-        this.threadPool = threadPool;
         this.timeout = timeout;
 
         this.functionInformation = {};
@@ -219,7 +218,7 @@ class MatApplication{
         for(const eventName of Object.keys(this.listeningEvents)){
             if(eventName === event["name"] ||
                 (eventName.includes("*") && event["name"].startsWith(eventName.replace("*", "")))){
-                this.__executeEvent(eventName, event);
+                this.__executeEvent(eventName, event).then();
             }
         }
     }
@@ -237,7 +236,7 @@ class MatApplication{
         }
     }
 
-    __executeEvent(registeredEventName, event){
+    async __executeEvent(registeredEventName, event){
         if(!(registeredEventName in this.listeningEvents)){
             return;
         }
@@ -246,7 +245,7 @@ class MatApplication{
             if(functionInfo["acceptOnlyWithResponseId"] && !("responseId" in event)){
                 return;
             }
-            const result = functionInfo["function"](event);
+            const result = await functionInfo["function"](event);
             if(functionInfo["returnResponse"]){
                 if("responseId" in event){
                     if(result instanceof MatEventObject){
