@@ -7,13 +7,14 @@ const crypto = require('crypto');
 
 class MatEventObject{
 
-    constructor(name, params, exception=false, response=false, target=undefined, responseId=undefined) {
+    constructor(name, params, exception=false, options={}) {
         this.name = name;
         this.params = params;
         this.exception = exception;
-        this.target = target;
-        this.responseId = responseId;
-        this.response = response;
+
+        this.target = options["target"];
+        this.responseId = options["responseId"];
+        this.response = options["response"];
     }
 
     data(){
@@ -57,7 +58,7 @@ class MatApplication{
 
     }
     //mat function decorator
-    registerMatFunction(listeningEvents, callback, returnResponse, acceptOnlyWithResponseId, name, description, output, params){
+    registerMatFunction(listeningEvents, callback, returnResponse, acceptOnlyWithResponseId, functionInformation ={}){
         for(const eventName of listeningEvents){
             if(!(eventName in Object.keys(this.listeningEvents))){
                 this.listeningEvents[eventName] = []
@@ -76,11 +77,7 @@ class MatApplication{
         }
 
         if(name !== undefined){
-            this.functionInformation[this.applicationName + "." + name] = {
-                "description": description,
-                "output": output,
-                "params": params
-            }
+            this.functionInformation[this.applicationName + "." + name] = functionInformation;
         }
     }
 
@@ -259,7 +256,7 @@ class MatApplication{
                 }
 
                 if(result instanceof Object){
-                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, false, undefined, event["responseId"])).then();
+                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, false, {"responseId": event["responseId"]})).then();
                     return;
                 }
 
