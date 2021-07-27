@@ -76,8 +76,8 @@ class MatApplication{
             });
         }
 
-        if(name !== undefined){
-            this.functionInformation[this.applicationName + "." + name] = functionInformation;
+        if(functionInformation["name"] !== undefined){
+            this.functionInformation[this.applicationName + "." + functionInformation["name"]] = functionInformation;
         }
     }
 
