@@ -125,10 +125,10 @@ class MatApplication{
 
     async sendEvent(event){
         if(!(event instanceof MatEventObject)){
-            return new MatEventObject("event.invalid", {}, true).data();
+            return new MatEventObject("event.invalid").data();
         }
         if(this.eventHandlerEndpoints.length === 0){
-            return new MatEventObject("endpoint.invalid", {}, true).data();
+            return new MatEventObject("endpoint.invalid").data();
         }
 
         for(const endpoint of this.eventHandlerEndpoints){
@@ -156,7 +156,7 @@ class MatApplication{
                         delete eventData["responseId"];
                         return eventData;
                     }else{
-                        return new MatEventObject("response.timeout", {}, true).data();
+                        return new MatEventObject("response.timeout").data();
                     }
                 }
                 return responseData
@@ -164,14 +164,14 @@ class MatApplication{
             }
         }
 
-        return new MatEventObject("endpoint.failed", {}, true).data();
+        return new MatEventObject("endpoint.failed").data();
     }
 
     //======== HIDDEN ============
 
     __registerFunctionInformation(){
         for(const endpoint of this.eventHandlerEndpoints){
-            this.__executeBaseFunction(new MatEventObject("application.function.register", this.functionInformation).data(), this.publicKey, this.secretKey, endpoint).then((result)=>{console.log(result)});
+            this.__executeBaseFunction(new MatEventObject("application.function.register", false, this.functionInformation).data(), this.publicKey, this.secretKey, endpoint).then((result)=>{console.log(result)});
         }
     }
 
@@ -256,18 +256,18 @@ class MatApplication{
                 }
 
                 if(result instanceof Object){
-                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, false, {"responseId": event["responseId"]})).then();
+                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, {"responseId": event["responseId"]}), false).then();
                     return;
                 }
 
                 if(result === undefined){
-                    let resultObject = new MatEventObject("response.empty", {}, false)
+                    let resultObject = new MatEventObject("response.empty", false);
                     resultObject.responseId = event["responseId"];
                     this.sendEvent(resultObject).then();
                     return;
                 }
 
-                let resultObject = new MatEventObject("response." + String(event["name"]), {"result": result}, false)
+                let resultObject = new MatEventObject("response." + String(event["name"]), false, {"result": result})
                 resultObject.responseId = event["responseId"];
                 this.sendEvent(resultObject).then();
                 return;
