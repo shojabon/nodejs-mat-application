@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 class MatEventObject{
 
-    constructor(name, params, exception=false, options={}) {
+    constructor(name, params={}, exception=true, options={}) {
         this.name = name;
         this.params = params;
         this.exception = exception;
