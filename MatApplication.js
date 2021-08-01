@@ -69,16 +69,18 @@ class MatApplication{
             if(acceptOnlyWithResponseId === undefined){
                 acceptOnlyWithResponseId = false;
             }
-            this.listeningEvents[eventName].push({
+            let info = {
                 "function": callback,
                 "returnResponse": returnResponse,
                 "acceptOnlyWithResponseId": acceptOnlyWithResponseId
-            });
+            }
+            if(functionInformation["name"] !== undefined){
+                info["functionInformation"] = functionInformation;
+                this.functionInformation[this.applicationName + "." + functionInformation["name"]] = functionInformation;
+            }
+            this.listeningEvents[eventName].push(info);
         }
 
-        if(functionInformation["name"] !== undefined){
-            this.functionInformation[this.applicationName + "." + functionInformation["name"]] = functionInformation;
-        }
     }
 
     registerEndpoint(endpoint){
@@ -167,6 +169,74 @@ class MatApplication{
         return new MatEventObject("endpoint.failed").data();
     }
 
+    //========= PARAMS ===========
+
+    validParams(params, paramSettings, starting=true){
+        if(!starting){
+            return starting;
+        }
+        const paramChecker = Object.keys(params);
+        const resultChecker = {};
+        for(const operator of this.createPramOperator(paramSettings["params"]).reverse()){
+            for(const key of Object.keys(operator)){
+                //type or operator
+                if(operator[key]["type"] === "or"){
+                    for(const opeKeys of Object.keys(operator[key]["params"])){
+                        if(opeKeys in resultChecker && resultChecker[opeKeys] === true){
+                            resultChecker[key] = true;
+                            break;
+                        }
+                    }
+                    if(!(key in resultChecker)){
+                        resultChecker[key] = false;
+                    }
+                    continue;
+                }
+                //type and operator
+                if(operator[key]["type"] === "and"){
+                    for(const opeKeys of Object.keys(operator[key]["params"])){
+                        if(!(opeKeys in resultChecker)){
+                            resultChecker[key] = false;
+                            break;
+                        }
+                        if(resultChecker[opeKeys] === false){
+                            resultChecker[key] = false;
+                            break;
+                        }
+                    }
+                    if(!(key in resultChecker)){
+                        resultChecker[key] = true;
+                    }
+                    continue;
+                }
+                //other type operator
+                if(paramChecker.includes(key)){
+                    resultChecker[key] = true;
+                    continue;
+                }
+                resultChecker[key] = false;
+            }
+        }
+        //final result
+        for(const key of Object.keys(paramSettings["params"])){
+            if(!(key in resultChecker) || resultChecker[key] === false){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    createPramOperator(paramsSettings, data=[]){
+        data.push(paramsSettings);
+        for(const key of Object.keys(paramsSettings)){
+            if(!("params" in paramsSettings[key])){
+                continue;
+            }
+            this.createPramOperator(paramsSettings[key]["params"], data);
+        }
+        return data
+    }
+
     //======== HIDDEN ============
 
     __registerFunctionInformation(){
@@ -238,10 +308,19 @@ class MatApplication{
             return;
         }
         for(const functionInfo of this.listeningEvents[registeredEventName]){
-
             if(functionInfo["acceptOnlyWithResponseId"] && !("responseId" in event)){
                 return;
             }
+            if("functionInformation" in functionInfo){
+                const paramsValid = this.validParams(event["params"], functionInfo["functionInformation"]);
+                if(!paramsValid){
+                    if(functionInfo["returnResponse"]){
+                        this.sendEvent(new MatEventObject("params.lacking")).then();
+                    }
+                    return;
+                }
+            }
+
             const result = await functionInfo["function"](event);
             if(functionInfo["returnResponse"]){
                 if("responseId" in event){
@@ -256,7 +335,7 @@ class MatApplication{
                 }
 
                 if(result instanceof Object){
-                    this.sendEvent(new MatEventObject("response." + String(event["name"]), result, {"responseId": event["responseId"]}), false).then();
+                    this.sendEvent(new MatEventObject("response." + String(event["name"]), false, result, {"responseId": event["responseId"]})).then();
                     return;
                 }
 
