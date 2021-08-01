@@ -180,6 +180,10 @@ class MatApplication{
         for(const operator of this.createPramOperator(paramSettings["params"]).reverse()){
             for(const key of Object.keys(operator)){
                 //type or operator
+                if(operator[key]["required"] === false){
+                    resultChecker[key] = true;
+                    continue;
+                }
                 if(operator[key]["type"] === "or"){
                     for(const opeKeys of Object.keys(operator[key]["params"])){
                         if(opeKeys in resultChecker && resultChecker[opeKeys] === true){
@@ -320,36 +324,44 @@ class MatApplication{
                     return;
                 }
             }
-
-            const result = await functionInfo["function"](event);
-            if(functionInfo["returnResponse"]){
-                if("responseId" in event){
-                    if(result instanceof MatEventObject){
-                        if(result.name === undefined){
-                            result.name = "response." + String(event["name"]);
+            try{
+                const result = await functionInfo["function"](event);
+                if(functionInfo["returnResponse"]){
+                    if("responseId" in event){
+                        if(result instanceof MatEventObject){
+                            if(result.name === undefined){
+                                result.name = "response." + String(event["name"]);
+                            }
+                            result.responseId = event["responseId"];
+                            this.sendEvent(result).then();
+                            return;
                         }
-                        result.responseId = event["responseId"];
-                        this.sendEvent(result).then();
+                    }
+
+                    if(result instanceof Object){
+                        this.sendEvent(new MatEventObject("response." + String(event["name"]), false, result, {"responseId": event["responseId"]})).then();
                         return;
                     }
-                }
 
-                if(result instanceof Object){
-                    this.sendEvent(new MatEventObject("response." + String(event["name"]), false, result, {"responseId": event["responseId"]})).then();
-                    return;
-                }
+                    if(result === undefined){
+                        let resultObject = new MatEventObject("response.empty", false);
+                        resultObject.responseId = event["responseId"];
+                        this.sendEvent(resultObject).then();
+                        return;
+                    }
 
-                if(result === undefined){
-                    let resultObject = new MatEventObject("response.empty", false);
+                    let resultObject = new MatEventObject("response." + String(event["name"]), false, {"result": result})
                     resultObject.responseId = event["responseId"];
                     this.sendEvent(resultObject).then();
                     return;
                 }
+            }catch (ex){
+                if(functionInfo["returnResponse"]){
 
-                let resultObject = new MatEventObject("response." + String(event["name"]), false, {"result": result})
-                resultObject.responseId = event["responseId"];
-                this.sendEvent(resultObject).then();
-                return;
+                    let resultObject = new MatEventObject("function.error");
+                    resultObject.responseId = event["responseId"];
+                    this.sendEvent(resultObject).then();
+                }
             }
 
         }
