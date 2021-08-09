@@ -148,7 +148,7 @@ class MatApplication{
                 if("responseId" in responseData["params"]){
                     const responseId = responseData["params"]["responseId"];
                     this.waitingForResponse.push(responseId);
-                    await this.__waitUntil(()=>{return responseId in this.responseTable}, this.timeout, 50);
+                    await this.__waitUntil(()=>{return responseId in this.responseTable}, this.timeout, 1);
                     this.waitingForResponse.splice(this.waitingForResponse.indexOf(responseId), 1);
                     if(responseId in this.responseTable){
                         const eventData = this.responseTable[responseId];
@@ -319,7 +319,9 @@ class MatApplication{
                 const paramsValid = this.validParams(event["params"], functionInfo["functionInformation"]);
                 if(!paramsValid){
                     if(functionInfo["returnResponse"]){
-                        this.sendEvent(new MatEventObject("params.lacking")).then();
+                        let tempResponse = new MatEventObject("params.lacking");
+                        tempResponse.responseId = event["responseId"];
+                        this.sendEvent(tempResponse).then();
                     }
                     return;
                 }
@@ -339,6 +341,10 @@ class MatApplication{
                     }
 
                     if(result instanceof Object){
+                        if("name" in result && "params" in result && "exception" in result){
+                            this.sendEvent(new MatEventObject(result["name"], result["exception"], result["params"], {"responseId": event["responseId"]})).then();
+                            return;
+                        }
                         this.sendEvent(new MatEventObject("response." + String(event["name"]), false, result, {"responseId": event["responseId"]})).then();
                         return;
                     }
