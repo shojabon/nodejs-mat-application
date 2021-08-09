@@ -263,7 +263,7 @@ class MatApplication{
                 return;
             }
             if(this.__verifyMessage(req.body, this.secretKey) === req.headers.v){
-                this.__handleEvent(req.body);
+                this.__handleEvent(req.body).then();
                 res.send("");
                 return;
             }
@@ -281,7 +281,7 @@ class MatApplication{
         return false;
     }
 
-    __handleEvent(event){
+    async __handleEvent(event){
         if("responseId" in event && this.waitingForResponse.includes(event["responseId"])){
             this.responseTable[event["responseId"]] = event;
             return;
@@ -289,7 +289,7 @@ class MatApplication{
         for(const eventName of Object.keys(this.listeningEvents)){
             if(eventName === event["name"] ||
                 (eventName.includes("*") && event["name"].startsWith(eventName.replace("*", "")))){
-                this.__executeEvent(eventName, event).then();
+                await this.__executeEvent(eventName, event);
             }
         }
     }
@@ -363,7 +363,7 @@ class MatApplication{
                 }
             }catch (ex){
                 if(functionInfo["returnResponse"]){
-
+                    console.log(ex);
                     let resultObject = new MatEventObject("function.error");
                     resultObject.responseId = event["responseId"];
                     this.sendEvent(resultObject).then();
